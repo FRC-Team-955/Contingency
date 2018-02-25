@@ -26,7 +26,7 @@ void ScissorLift::run_loop() {
 	float left_slowdown = clamp_max(sync_p_gain * (talon_left->GetSelectedSensorPosition(0) - talon_right->GetSelectedSensorPosition(0)));
 	float right_slowdown = clamp_max(sync_p_gain * (talon_right->GetSelectedSensorPosition(0) - talon_left->GetSelectedSensorPosition(0)));
 
-	if (target_native < talon_left->GetSelectedSensorPosition(0) && dio_left->Get()) {
+	if (target_native < talon_left->GetSelectedSensorPosition(0) && dio_left->Get() == LimitSwitchState::Closed) {
 		//Moving downward (Hopefully, haha) and the limit switch is depressed. Reset the encoder position and STOP!
 		talon_left->Set(ControlMode::PercentOutput, 0, 10);
 		talon_left->SetSelectedSensorPosition(0, 0, 10);
@@ -37,7 +37,7 @@ void ScissorLift::run_loop() {
 		talon_left->Set(ControlMode::Position, target_native, 10);
 	}
 
-	if (target_native < talon_right->GetSelectedSensorPosition(0) && dio_right->Get()) {
+	if (target_native < talon_right->GetSelectedSensorPosition(0) && dio_right->Get() == LimitSwitchState::Closed) {
 		talon_right->Set(ControlMode::PercentOutput, 0, 10);
 		talon_right->SetSelectedSensorPosition(0, 0, 10);
 	} else {

@@ -4,6 +4,7 @@
 #include <ctre/Phoenix.h>
 #include <WPILib.h>
 #include <iostream>
+#include <common_settings.h>
 
 class ScissorLift {
 	public:

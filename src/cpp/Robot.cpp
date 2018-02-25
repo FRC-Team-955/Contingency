@@ -126,6 +126,7 @@ class Robot : public IterativeRobot {
 
 		bool display_results_once = false;
 		void TestInit() {
+			std::cout << "What?" << std::endl;
 			display_results_once = false;
 			diag->reset();
 			diag->push_diagnostic(new LimitSwitchTest(dio_left));

@@ -5,6 +5,7 @@
 #include <ctre/Phoenix.h>
 #include <vector>
 #include <test.h>
+#include <iostream>
 
 class Diagnostic {
 	private:

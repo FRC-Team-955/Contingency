@@ -5,6 +5,7 @@
 #include <test.h>
 #include <ctre/Phoenix.h>
 #include <iostream>
+#include <common_settings.h>
 
 class LimitSwitchTest : public Test {
 	public:

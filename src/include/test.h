@@ -10,6 +10,6 @@ class Test {
 		std::vector<Test*> subtests;
 		std::string info = "";
 		std::string suggestion = "";
-		bool was_successful; 
+		bool was_successful = false; 
 };
 #endif
