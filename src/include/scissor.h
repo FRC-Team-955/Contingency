@@ -18,12 +18,12 @@ class ScissorLift {
 
 		void set_position(float target_inch);  
 	private:
-		float target_inch = 0.0;
+		float target_native = 0.0;
 		Notifier* notifier;
+		//TODO: Use shared_ptr instead
 		TalonSRX *talon_left, *talon_right; 
 		DigitalInput* dio_left, *dio_right;
 		void run_loop();
-		inline float position_to_native (float position);
 		inline void home();
 		inline float clamp_max (float input);
 
@@ -38,3 +38,4 @@ class ScissorLift {
 };
 
 #endif
+

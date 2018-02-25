@@ -19,27 +19,17 @@ void ScissorLift::run_loop() {
 		notifier->Stop();
 	}
 
-	//TODO: Add limit switch behaviour, clean up this code
+	//TODO: Document how this works
+	float left_slowdown = clamp_max(sync_p_gain * (talon_left->GetSelectedSensorPosition(0) - talon_right->GetSelectedSensorPosition(0)));
+	float right_slowdown = clamp_max(sync_p_gain * (talon_right->GetSelectedSensorPosition(0) - talon_left->GetSelectedSensorPosition(0)));
 
-	//TODO: IF target < getposition() && get_dio()
-	//			OR if target > getposition() && get_dio()
-	//if (dio_left->Get() && position_to_native(target_inch) < talon_left->GetSelectedSensorPosition(0)) {
-	//	talon_left->Set(ControlMode::PercentOutput, 0, 10); 
-	//	talon_left->SetSelectedSensorPosition(0.0, 0, 10);
-	//} else {
-		talon_left->ConfigPeakOutputForward(max_peak_output - clamp_max(sync_p_gain * position_sync_error), 10);
-		talon_left->ConfigPeakOutputReverse(-(max_peak_output - clamp_max(sync_p_gain * -position_sync_error)), 10);
-		talon_left->Set(ControlMode::Position, position_to_native(target_inch), 10);
-	//}
+	talon_left->ConfigPeakOutputForward(max_peak_output - left_slowdown, 10);
+	talon_left->ConfigPeakOutputReverse(-(max_peak_output - right_slowdown), 10);
+	talon_left->Set(ControlMode::Position, position_to_native(target_inch), 10);
 
-	//if (dio_right->Get() && position_to_native(target_inch) < talon_right->GetSelectedSensorPosition(0)) {
-	//	talon_right->Set(ControlMode::PercentOutput, 0, 10); 
-	//	talon_right->SetSelectedSensorPosition(0.0, 0, 10);
-	//} else {
-		talon_right->ConfigPeakOutputForward(max_peak_output - clamp_max(sync_p_gain * -position_sync_error), 10);
-		talon_right->ConfigPeakOutputReverse(-(max_peak_output - clamp_max(sync_p_gain * position_sync_error)), 10);
-		talon_right->Set(ControlMode::Position, position_to_native(target_inch), 10);
-	//}
+	talon_right->ConfigPeakOutputForward(max_peak_output - right_slowdown, 10);
+	talon_right->ConfigPeakOutputReverse(-(max_peak_output - left_slowdown), 10);
+	talon_right->Set(ControlMode::Position, position_to_native(target_inch), 10);
 }
 
 inline float ScissorLift::clamp_max (float input) {
