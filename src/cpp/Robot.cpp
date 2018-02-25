@@ -7,6 +7,7 @@
 #include <common_settings.h>
 #include <scissor.h>
 #include <diagnostic.h>
+#include <limit_switch_test.h>
 #include <drivebase.h>
 
 const float one_rotation = 4096.0;
@@ -127,7 +128,8 @@ class Robot : public IterativeRobot {
 		void TestInit() {
 			display_results_once = false;
 			diag->reset();
-			//diag->push_diagnostic();
+			diag->push_diagnostic(new LimitSwitchTest(dio_left));
+			diag->push_diagnostic(new LimitSwitchTest(dio_right));
 			diag->start();
 		}
 
