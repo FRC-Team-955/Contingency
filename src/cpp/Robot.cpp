@@ -8,7 +8,9 @@
 #include <scissor.h>
 #include <diagnostic.h>
 #include <limit_switch_test.h>
+#include <encoded_srx_test.h>
 #include <drivebase.h>
+#include <socket.h>
 
 const float one_rotation = 4096.0;
 
@@ -30,6 +32,8 @@ class Robot : public IterativeRobot {
 		Diagnostic *diag;
 		DriveBase *drive_base;
 		Joystick *joy;
+		SocketClient *jetson_sock;
+		int last_joystick_pov = -1;
 		//Solenoid *drive_base_shifter;
 
 		void FPID() {
@@ -81,6 +85,10 @@ class Robot : public IterativeRobot {
 					drive_y_axis_exponent,
 					-1.0, ControlMode::PercentOutput);
 
+			std::cout << "Connecting to Jetson" << std::endl;
+			jetson_sock = new SocketClient (5081, (char*)"tegra-ubuntu.local");
+			std::cout << "Finished." << std::endl;
+
 			std::cout << "============ Initialization complete. ============" << std::endl;
 		}
 
@@ -88,13 +96,12 @@ class Robot : public IterativeRobot {
 			scissor->stop_loop();
 		}
 
-		bool reverse = true;
-		int last = -1;
+		//bool reverse = true;
 		void TeleopInit() {
-			reverse = !reverse;
+			//reverse = !reverse;
 			//drive_base_shifter->Set(reverse);
 			
-			last = -1;
+			last_joystick_pov = -1;
 			//scissor->start_loop(
 			//		SmartDashboard::GetNumber("DB/Slider 0", 0.0) / one_rotation,
 			//		SmartDashboard::GetNumber("DB/Slider 1", 0.0)
@@ -105,7 +112,8 @@ class Robot : public IterativeRobot {
 		float pos = 0.0;
 		void TeleopPeriodic() {
 			int current = joy->GetPOV(0);
-			if (last == -1) {
+			//TODO: Add this logic to a class...?
+			if (last_joystick_pov == -1) {
 				switch (current) {
 					case 0:
 						pos -= delta;
@@ -119,16 +127,25 @@ class Robot : public IterativeRobot {
 						break;
 				}
 			}
-			last = current;
+			last_joystick_pov = current;
 			drive_base->update();
 			std::cout << scissor->get_sync_error();
 		}
 
+		void AutonomousInit() {
+
+		}
+		void AutonomousPeriodic() {
+
+		}
+
 		bool display_results_once = false;
 		void TestInit() {
-			std::cout << "What?" << std::endl;
 			display_results_once = false;
 			diag->reset();
+			diag->push_diagnostic(new EncodedSRXTest(tln_drbase_left_enc));
+			diag->push_diagnostic(new EncodedSRXTest(tln_drbase_right_enc));
+
 			diag->push_diagnostic(new LimitSwitchTest(dio_left));
 			diag->push_diagnostic(new LimitSwitchTest(dio_right));
 			diag->start();

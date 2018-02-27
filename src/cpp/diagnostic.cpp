@@ -5,7 +5,7 @@ void Diagnostic::push_diagnostic (Test *test) {
 }
 
 void Diagnostic::start() {
-	std::cout << "---------------- BEGIN DIAGNOSTIC ----------------" << std::endl;
+	std::cout << "================= Begin Diagnostic =================" << std::endl;
 	queue.back()->begin();
 }
 
@@ -18,7 +18,7 @@ bool Diagnostic::control() {
 			//Pop it off of the queued tests
 			queue.pop_back();
 			if (completed.back()->was_successful) {
-				//If the last one was successful, add it's subtests to the queue
+				//If the last one was successful, add it's subtests to the back of the queue
 				queue.insert(queue.end(), completed.back()->subtests.begin(), completed.back()->subtests.end());
 			}
 			if (queue.size() > 0) {
@@ -34,14 +34,14 @@ bool Diagnostic::control() {
 
 void Diagnostic::results() {
 	//Print successes before failures, because failures will be more visible at the bottom
-	//TODO: Make this shorter...
-	std::cout << "----------------DIAGNOSTIC RESULTS----------------" << std::endl;
+	//TODO: Shorten this
+	std::cout << "================= Diagnostic Results =================" << std::endl;
 	for (auto& test : completed) {
 		if (test->was_successful) {
 			std::cout << "SUCCESS: " << std::endl;
 			std::cout << test->info << std::endl;
 			std::cout << test->suggestion << std::endl;
-			std::cout << "--------------------------------------------------" << std::endl;
+			std::cout << "------------------------------------------------------" << std::endl;
 		}
 	}
 	for (auto& test : completed) {
@@ -49,7 +49,7 @@ void Diagnostic::results() {
 			std::cout << "FAILURE: " << std::endl;
 			std::cout << test->info << std::endl;
 			std::cout << test->suggestion << std::endl;
-			std::cout << "--------------------------------------------------" << std::endl;
+			std::cout << "------------------------------------------------------" << std::endl;
 		}
 	}
 }

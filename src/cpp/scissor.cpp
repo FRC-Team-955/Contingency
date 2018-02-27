@@ -2,7 +2,8 @@
 
 //TODO: Don't hardcode anything (AKA talon timeouts, PID loop idx)
 //      Slowdown near the bottom when moving downwards
-//      Don't use opposite 'slowdowns' when moving in the other direction
+//      Don't use opposite 'slowdowns' when moving in the other direction, do it some cleaner way
+//      Hard limit for going farther up than the physical limit
 
 void ScissorLift::start_loop(float sync_p_gain, float max_peak_output) {
 	this->sync_p_gain = sync_p_gain;
