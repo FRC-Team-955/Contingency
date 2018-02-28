@@ -11,6 +11,7 @@
 #include <encoded_srx_test.h>
 #include <drivebase.h>
 #include <socket.h>
+#include <shared_network_types.h>
 
 const float one_rotation = 4096.0;
 
@@ -86,7 +87,7 @@ class Robot : public IterativeRobot {
 					-1.0, ControlMode::PercentOutput);
 
 			std::cout << "Connecting to Jetson" << std::endl;
-			jetson_sock = new SocketClient (5081, (char*)"tegra-ubuntu.local");
+			//jetson_sock = new SocketClient (5081, (char*)"tegra-ubuntu.local");
 			std::cout << "Finished." << std::endl;
 
 			std::cout << "============ Initialization complete. ============" << std::endl;
@@ -130,17 +131,41 @@ class Robot : public IterativeRobot {
 			last_joystick_pov = current;
 			drive_base->update();
 			std::cout << scissor->get_sync_error();
+			if (joy->GetRawButton(1)) {
+				tln_intake_left->Set(ControlMode::PercentOutput, intake_speed_in);	
+				tln_intake_right->Set(ControlMode::PercentOutput, intake_speed_in);	
+			} else if (joy->GetRawButton(2)) {
+				tln_intake_left->Set(ControlMode::PercentOutput, intake_speed_out);	
+				tln_intake_right->Set(ControlMode::PercentOutput, intake_speed_out);	
+			} else {
+				tln_intake_left->Set(ControlMode::PercentOutput, 0);	
+				tln_intake_right->Set(ControlMode::PercentOutput, 0);	
+			}
 		}
 
-		void AutonomousInit() {
-
+		RobotCommand command;
+		bool response;
+		void TestInit() {
+			response = true;
+			jetson_sock->write_to(&response, sizeof(response));
+			jetson_sock->read_to(&command, sizeof(command));
 		}
-		void AutonomousPeriodic() {
 
+		void TestPeriodic() {
+			std::cout << 
+				command.motion.velocity_left << 
+				" : " << 
+				command.motion.velocity_right << 
+				std::endl;
+			tln_drbase_left_enc->Set(ControlMode::PercentOutput, command.motion.velocity_left * 0.5);
+			tln_drbase_right_enc->Set(ControlMode::PercentOutput, command.motion.velocity_right * 0.5);
+			response = false;
+			jetson_sock->write_to(&response, sizeof(response));
+			jetson_sock->read_to(&command, sizeof(command));
 		}
 
 		bool display_results_once = false;
-		void TestInit() {
+		void AutonomousInit() {
 			display_results_once = false;
 			diag->reset();
 			diag->push_diagnostic(new EncodedSRXTest(tln_drbase_left_enc));
@@ -151,7 +176,7 @@ class Robot : public IterativeRobot {
 			diag->start();
 		}
 
-		void TestPeriodic() {
+		void AutonomousPeriodic() {
 			if (!display_results_once && !diag->control()) {
 				diag->results();
 				diag->reset();

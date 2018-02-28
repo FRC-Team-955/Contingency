@@ -18,6 +18,10 @@ const int talon_timeout_ms = 10;
 const int dio_idx_scissor_left = 1;
 const int dio_idx_scissor_right = 2;
 
+// Speeds
+const float intake_speed_in = 0.6;
+const float intake_speed_out = -0.6;
+
 //Turns out DIO pins float at '1' (Positive) So all of our limit switches are Normally Open and put 0 (Negative) when closed.
 enum LimitSwitchState {
 	Closed = 0,

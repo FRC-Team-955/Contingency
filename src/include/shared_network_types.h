@@ -10,9 +10,10 @@ struct TankDriveMotionUnit {
 };
 
 enum Action {
-	Scissor_UP,		
-	Scissor_AND_EXPEL,		
-	Scissor_DOWN,		
+	Scissor_Up    =  1,
+	Scissor_Down  =  2,
+	Cube_Expel    =  4,
+	Cube_Intake   =  8,
 };
 
 struct RobotCommand {
