@@ -113,7 +113,7 @@ class Robot : public IterativeRobot {
 		float pos = 0.0;
 		void TeleopPeriodic() {
 			drive_base->update();
-			scissor_control->input_update();
+			scissor_control->update();
 
 			if (joy->GetRawButton(1)) {
 				tln_intake_left->Set(ControlMode::PercentOutput, intake_speed_in);	

@@ -16,6 +16,7 @@ class ScissorLift {
 			};
 		void start_loop(float sync_p_gain, float max_peak_output);
 		void stop_loop();
+		void update();
 
 		float get_sync_error();
 		float get_position();
@@ -39,6 +40,9 @@ class ScissorLift {
 
 		const float scissor_arm_length = 20.5;
 		const float rotations_per_inch = 5.0;
+
+		bool dio_left_depressed;
+		bool dio_right_depressed;
 
 };
 

@@ -9,7 +9,11 @@ void ScissorLift::start_loop(float sync_p_gain, float max_peak_output) {
 	this->sync_p_gain = sync_p_gain;
 	this->max_peak_output = max_peak_output;
 	stopped = false;
-	notifier->StartPeriodic(0.01); 
+	notifier->StartPeriodic(0.02); 
+	//TODO: Remove this
+	talon_left->SetSelectedSensorPosition(0, 0, 10);
+	talon_right->SetSelectedSensorPosition(0, 0, 10);
+	target = 0.0;
 }
 
 void ScissorLift::stop_loop() {
@@ -17,36 +21,55 @@ void ScissorLift::stop_loop() {
 	stopped = true;
 }
 
+void ScissorLift::update() {
+	dio_left_depressed = dio_left->Get() == LimitSwitchState::Closed;
+	dio_right_depressed = dio_right->Get() == LimitSwitchState::Closed;
+}
+
 void ScissorLift::run_loop() {
-	float position_sync_error = get_sync_error();
 	if (stopped) { //DO NOT REMOVE THIS I HAVE NO IDEA WHY IT IS NECESSARY
 		notifier->Stop();
 	}
+	float position_left = talon_left->GetSelectedSensorPosition(0);
+	float position_right = talon_right->GetSelectedSensorPosition(0);
 
 	//TODO: Document how this works
-	float left_slowdown = clamp_max(sync_p_gain * (talon_left->GetSelectedSensorPosition(0) - talon_right->GetSelectedSensorPosition(0)));
-	float right_slowdown = clamp_max(sync_p_gain * (talon_right->GetSelectedSensorPosition(0) - talon_left->GetSelectedSensorPosition(0)));
+	float left_slowdown = clamp_max(sync_p_gain * (position_left - position_right));
+	float right_slowdown = clamp_max(sync_p_gain * (position_right - position_left));
 
 	//TODO: Make it more clear that up is negative and that down is positive
 	//      Shorten this if possible
-	if (target > talon_left->GetSelectedSensorPosition(0) && dio_left->Get() == LimitSwitchState::Closed) {
-		//Moving downward (Positive direction) (Hopefully, haha) and the limit switch is depressed. Reset the encoder position and STOP!
+	bool left_stop = false;//talon_left->GetClosedLoopTarget(0) > position_left && dio_left_depressed;
+	bool right_stop = false;//talon_right->GetClosedLoopTarget(0) > position_right && dio_right_depressed;
+
+	talon_left->Set(ControlMode::Position, target, 10);
+	if (left_stop) {
+		//Moving downward (Hopefully, haha) and the limit switch is depressed. Reset the encoder position and STOP!
+		talon_left->ConfigPeakOutputForward(0.0, 10);
 		talon_left->Set(ControlMode::PercentOutput, 0, 10);
-		talon_left->SetSelectedSensorPosition(0, 0, 10);
-	} else {
+	} else if (!right_stop) { 
 		//Adjust your speed based on how far away from the other scissor you are
 		talon_left->ConfigPeakOutputForward(max_peak_output - left_slowdown, 10);
 		talon_left->ConfigPeakOutputReverse(-(max_peak_output - right_slowdown), 10);
-		talon_left->Set(ControlMode::Position, target, 10);
+	} else {
+		talon_left->ConfigPeakOutputForward(0.25, 10);
 	}
 
-	if (target > talon_right->GetSelectedSensorPosition(0) && dio_right->Get() == LimitSwitchState::Closed) {
+	talon_right->Set(ControlMode::Position, target, 10);
+	if (right_stop) {
+		talon_right->ConfigPeakOutputForward(0.0, 10);
 		talon_right->Set(ControlMode::PercentOutput, 0, 10);
-		talon_right->SetSelectedSensorPosition(0, 0, 10);
-	} else {
+	} else if (!left_stop) {
 		talon_right->ConfigPeakOutputForward(max_peak_output - right_slowdown, 10);
 		talon_right->ConfigPeakOutputReverse(-(max_peak_output - left_slowdown), 10);
-		talon_right->Set(ControlMode::Position, target, 10);
+	} else {
+		talon_right->ConfigPeakOutputForward(0.25, 10);
+	}
+
+	if (left_stop && right_stop) {
+		target = 0.0;
+		talon_left->SetSelectedSensorPosition(0, 0, 10);
+		talon_right->SetSelectedSensorPosition(0, 0, 10);
 	}
 }
 
