@@ -23,6 +23,8 @@ class ScissorLift {
 		float get_target();
 
 		void set_position(float target_inch);  
+
+		bool home(float speed);
 	private:
 		float target = 0.0;
 		Notifier* notifier;
@@ -30,7 +32,6 @@ class ScissorLift {
 		TalonSRX *talon_left, *talon_right; 
 		DigitalInput* dio_left, *dio_right;
 		void run_loop();
-		inline void home();
 		inline float clamp_max (float input);
 
 		bool stopped = false;
@@ -40,9 +41,6 @@ class ScissorLift {
 
 		const float scissor_arm_length = 20.5;
 		const float rotations_per_inch = 5.0;
-
-		bool dio_left_depressed;
-		bool dio_right_depressed;
 
 };
 

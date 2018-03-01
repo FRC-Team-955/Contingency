@@ -10,11 +10,11 @@
 #include <diagnostic.h>
 #include <limit_switch_test.h>
 #include <encoded_srx_test.h>
+#include <scissor_home_test.h>
 
 #include <drivebase.h>
 #include <socket.h>
 #include <shared_network_types.h>
-
 
 //TODO: Add diagnostics (Esp. to check if the motor moves the correct direction when powered a certain way)
 //           Limit switch diagnostic: Instruct user to click LS, wait 5 seconds for it... See if it is clicked.
@@ -36,6 +36,7 @@ class Robot : public IterativeRobot {
 		// Controller components
 		Diagnostic *diag;
 		SocketClient *jetson_sock;
+		ScissorLift *scissor;
 
 		// Control managers (User control, atuo)
 		DriveBase *drive_base;
@@ -75,10 +76,8 @@ class Robot : public IterativeRobot {
 
 			joy = new Joystick(joy_idx);
 
-			scissor_control = new ScissorLiftController(
-					joy, 
-					new ScissorLift(tln_scissor_left_enc, tln_scissor_right_enc, dio_left, dio_right), 
-					scissorlift_one_rotation_nu * 3.0);
+			scissor = new ScissorLift(tln_scissor_left_enc, tln_scissor_right_enc, dio_left, dio_right);
+			scissor_control = new ScissorLiftController(joy, scissor, scissorlift_one_rotation_nu * 3.0);
 
 			//drive_base_shifter = new Solenoid(solenoid_shifter_idx);
 
@@ -152,11 +151,16 @@ class Robot : public IterativeRobot {
 		void AutonomousInit() {
 			display_results_once = false;
 			diag->reset();
-			diag->push_diagnostic(new EncodedSRXTest(tln_drbase_left_enc));
-			diag->push_diagnostic(new EncodedSRXTest(tln_drbase_right_enc));
+			//diag->push_diagnostic(new EncodedSRXTest(tln_drbase_left_enc));
+			//diag->push_diagnostic(new EncodedSRXTest(tln_drbase_right_enc));
 
-			diag->push_diagnostic(new LimitSwitchTest(dio_left));
-			diag->push_diagnostic(new LimitSwitchTest(dio_right));
+			auto lm_test_left = new LimitSwitchTest(dio_left);
+			auto lm_test_right = new LimitSwitchTest(dio_right);
+			lm_test_left->subtests.push_back(lm_test_right);
+			auto scissor_home = new ScissorHomeTest(scissor, 0.25);
+			lm_test_right->subtests.push_back(scissor_home);
+			
+			diag->push_diagnostic(lm_test_left);
 			diag->start();
 		}
 
