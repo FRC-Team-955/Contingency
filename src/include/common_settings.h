@@ -28,6 +28,11 @@ enum LimitSwitchState {
 	Open = 1,
 };
 
+// Solenoid
 const int solenoid_shifter_idx = 1;
+
+// Limits
+const float scissorlift_one_rotation_nu = 4096.0;
+const float scissorlift_maximum_height_nu = scissorlift_one_rotation_nu * 5.0 * 7.5;
 
 #endif

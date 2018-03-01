@@ -5,6 +5,8 @@
 #include <test.h>
 #include <ctre/Phoenix.h>
 #include <iostream>
+
+//TODO: REMOVE THIS:
 #include <common_settings.h>
 
 class LimitSwitchTest : public Test {

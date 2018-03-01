@@ -5,15 +5,16 @@
 #include <iostream>
 
 #include <common_settings.h>
-#include <scissor.h>
+#include <scissor_controller.h>
+
 #include <diagnostic.h>
 #include <limit_switch_test.h>
 #include <encoded_srx_test.h>
+
 #include <drivebase.h>
 #include <socket.h>
 #include <shared_network_types.h>
 
-const float one_rotation = 4096.0;
 
 //TODO: Add diagnostics (Esp. to check if the motor moves the correct direction when powered a certain way)
 //           Limit switch diagnostic: Instruct user to click LS, wait 5 seconds for it... See if it is clicked.
@@ -24,18 +25,21 @@ const float one_rotation = 4096.0;
 
 class Robot : public IterativeRobot {
 	private:
-		//Talon object pointers macro hack
+		// I/O
 #define TALON(NAME, NUM) TalonSRX* tln_##NAME;
 #include <talons.h>
 #undef TALON
-		ScissorLift *scissor;
 		DigitalInput *dio_left, *dio_right;
-		Diagnostic *diag;
-		DriveBase *drive_base;
 		Joystick *joy;
-		SocketClient *jetson_sock;
-		int last_joystick_pov = -1;
 		//Solenoid *drive_base_shifter;
+
+		// Controller components
+		Diagnostic *diag;
+		SocketClient *jetson_sock;
+
+		// Control managers (User control, atuo)
+		DriveBase *drive_base;
+		ScissorLiftController* scissor_control;
 
 		void FPID() {
 			tln_scissor_left_enc->Config_kF(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 0", "0.0").c_str()), talon_timeout_ms);
@@ -48,7 +52,6 @@ class Robot : public IterativeRobot {
 			tln_scissor_right_enc->Config_kI(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 7", "0.0").c_str()), talon_timeout_ms);
 			tln_scissor_right_enc->Config_kD(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 8", "0.0").c_str()), talon_timeout_ms);
 		}
-
 
 		void RobotInit() {
 			std::cout << "================= Initializing... =================" << std::endl;
@@ -72,7 +75,10 @@ class Robot : public IterativeRobot {
 
 			joy = new Joystick(joy_idx);
 
-			scissor = new ScissorLift(tln_scissor_left_enc, tln_scissor_right_enc, dio_left, dio_right);
+			scissor_control = new ScissorLiftController(
+					joy, 
+					new ScissorLift(tln_scissor_left_enc, tln_scissor_right_enc, dio_left, dio_right), 
+					scissorlift_one_rotation_nu * 3.0);
 
 			//drive_base_shifter = new Solenoid(solenoid_shifter_idx);
 
@@ -86,51 +92,29 @@ class Robot : public IterativeRobot {
 					drive_y_axis_exponent,
 					-1.0, ControlMode::PercentOutput);
 
-			std::cout << "Connecting to Jetson" << std::endl;
+			//std::cout << "Connecting to Jetson" << std::endl;
 			//jetson_sock = new SocketClient (5081, (char*)"tegra-ubuntu.local");
-			std::cout << "Finished." << std::endl;
+			//std::cout << "Finished." << std::endl;
 
 			std::cout << "============ Initialization complete. ============" << std::endl;
 		}
 
 		void DisabledInit() {
-			scissor->stop_loop();
+			scissor_control->stop();
 		}
 
-		//bool reverse = true;
 		void TeleopInit() {
-			//reverse = !reverse;
-			//drive_base_shifter->Set(reverse);
-			
-			last_joystick_pov = -1;
-			//scissor->start_loop(
-			//		SmartDashboard::GetNumber("DB/Slider 0", 0.0) / one_rotation,
-			//		SmartDashboard::GetNumber("DB/Slider 1", 0.0)
-			//		);
+			scissor_control->start(
+					SmartDashboard::GetNumber("DB/Slider 0", 0.0) / scissorlift_one_rotation_nu,
+					SmartDashboard::GetNumber("DB/Slider 1", 0.0)
+					);
 		}
 
-		float delta = one_rotation;
 		float pos = 0.0;
 		void TeleopPeriodic() {
-			int current = joy->GetPOV(0);
-			//TODO: Add this logic to a class...?
-			if (last_joystick_pov == -1) {
-				switch (current) {
-					case 0:
-						pos -= delta;
-						scissor->set_position(pos);
-						break;
-					case 180:
-						pos += delta;
-						scissor->set_position(pos);
-						break;
-					default:
-						break;
-				}
-			}
-			last_joystick_pov = current;
 			drive_base->update();
-			std::cout << scissor->get_sync_error();
+			scissor_control->input_update();
+
 			if (joy->GetRawButton(1)) {
 				tln_intake_left->Set(ControlMode::PercentOutput, intake_speed_in);	
 				tln_intake_right->Set(ControlMode::PercentOutput, intake_speed_in);	

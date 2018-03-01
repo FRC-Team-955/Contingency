@@ -4,6 +4,8 @@
 #include <ctre/Phoenix.h>
 #include <WPILib.h>
 #include <iostream>
+
+//TODO: REMOVE THIS:
 #include <common_settings.h>
 
 class ScissorLift {
@@ -15,13 +17,15 @@ class ScissorLift {
 		void start_loop(float sync_p_gain, float max_peak_output);
 		void stop_loop();
 
-		inline float get_sync_error();
+		float get_sync_error();
+		float get_position();
+		float get_target();
 
 		void set_position(float target_inch);  
 	private:
-		float target_native = 0.0;
+		float target = 0.0;
 		Notifier* notifier;
-		//TODO: Use shared_ptr instead
+		//TODO: Use shared_ptr instead?
 		TalonSRX *talon_left, *talon_right; 
 		DigitalInput* dio_left, *dio_right;
 		void run_loop();
