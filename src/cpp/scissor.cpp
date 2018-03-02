@@ -87,7 +87,7 @@ float ScissorLift::get_sync_error() {
 }
 
 float ScissorLift::get_position() {
-	return (talon_left->GetSelectedSensorPosition(0) + talon_right->GetSelectedSensorPosition(0) / 2);
+	return std::min(talon_left->GetSelectedSensorPosition(0), talon_right->GetSelectedSensorPosition(0));
 }
 
 float ScissorLift::get_target() {
@@ -95,5 +95,8 @@ float ScissorLift::get_target() {
 }
 
 void ScissorLift::set_position(float target_inch) {
-	this->target = target_inch;
+	// Don't set the target if you're going to go out of position limits
+	if (target_inch <= 0 && target_inch >= -scissorlift_one_rotation_nu * 5.0 * 7.5) {
+		this->target = target_inch;
+	}
 }
