@@ -6,12 +6,14 @@
 #include <ctre/Phoenix.h>
 #include <iostream>
 
+//TODO: Shorten this by using srx_test.h internally?
 class EncodedSRXTest : public Test {
 	public:
-		EncodedSRXTest (TalonSRX* talon) : talon(talon) {};
+		EncodedSRXTest  (TalonSRX* talon, float duration, float speed) : talon(talon), duration(duration), speed(speed) {};
 		void begin ();
 		bool update ();
 	private:
+		float duration, speed;
 		TalonSRX* talon;
 		Timer timer;
 };

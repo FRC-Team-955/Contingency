@@ -14,6 +14,8 @@ class ScissorLiftController {
 	private:
 		int last_joystick_pov = -1;
 		float position_delta;
+		bool reset_up = true;
+		bool reset_dn = true;
 		Joystick* joy; 
 		ScissorLift* scissor;
 };

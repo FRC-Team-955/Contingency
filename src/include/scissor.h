@@ -16,13 +16,12 @@ class ScissorLift {
 			};
 		void start_loop(float sync_p_gain, float max_peak_output);
 		void stop_loop();
-		void update();
 
 		float get_sync_error();
 		float get_position();
 		float get_target();
 
-		void set_position(float target_inch);  
+		void set_position(float target);  
 
 		bool home(float speed);
 	private:
@@ -45,4 +44,3 @@ class ScissorLift {
 };
 
 #endif
-

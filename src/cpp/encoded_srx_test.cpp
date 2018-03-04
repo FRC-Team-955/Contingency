@@ -1,14 +1,15 @@
 #include <encoded_srx_test.h>
 
 void EncodedSRXTest::begin() {
+	std::cout << "Moving talon " << talon->GetDeviceID() << "!!";
 	talon->SetSelectedSensorPosition(0.0, 0, 10);
-	talon->Set(ControlMode::PercentOutput, 0.25, 10);
+	talon->Set(ControlMode::PercentOutput, speed, 10);
 	timer.Reset();
 	timer.Start();
 }
 
 bool EncodedSRXTest::update() {
-	if (timer.Get() > 2.0) {
+	if (timer.Get() > duration) {
 		talon->Set(ControlMode::PercentOutput, 0.0, 10);
 		was_successful = std::fabs(talon->GetSelectedSensorPosition(0)) > 10;
 		std::ostringstream info_oss;

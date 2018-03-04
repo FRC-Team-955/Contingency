@@ -12,3 +12,7 @@ TALON(scissor_right_enc, 8)
 //Intake
 TALON(intake_left, 9)
 TALON(intake_right, 10) 
+
+//Climber
+TALON(climb_enc, 4)
+TALON(climb_fol, 6) 

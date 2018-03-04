@@ -19,8 +19,9 @@ const int dio_idx_scissor_left = 1;
 const int dio_idx_scissor_right = 2;
 
 // Speeds
-const float intake_speed_in = 0.6;
-const float intake_speed_out = -0.6;
+const float intake_speed_in = 0.8;
+const float intake_speed_out = -0.8;
+const float climb_speed = -1.0;
 
 //Turns out DIO pins float at '1' (Positive) So all of our limit switches are Normally Open and put 0 (Negative) when closed.
 enum LimitSwitchState {
@@ -34,5 +35,9 @@ const int solenoid_shifter_idx = 1;
 // Limits
 const float scissorlift_one_rotation_nu = 4096.0;
 const float scissorlift_maximum_height_nu = scissorlift_one_rotation_nu * 5.0 * 7.5;
+
+// Scissor lift coeffs
+const float scissorlift_p_gain = 1.16;
+const float scissorlift_max_speed = 1.0;
 
 #endif
