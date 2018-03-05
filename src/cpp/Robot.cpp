@@ -44,7 +44,7 @@ class Robot : public IterativeRobot {
 		// Control managers (User control, auto)
 		DriveBase *drive_base;
 		ScissorLiftController* scissor_control;
-		//MotionProfile* profile;
+		MotionProfile* profile;
 
 		void FPID() {
 			tln_scissor_left_enc->Config_kF(talon_pid_loop_idx, 0, talon_timeout_ms);
@@ -110,14 +110,13 @@ class Robot : public IterativeRobot {
 					drive_y_axis_idx,
 					drive_x_axis_exponent,
 					drive_y_axis_exponent,
-					-6698.0, ControlMode::Velocity);
+					-1.0, ControlMode::PercentOutput);
 
 			std::cout << "Connecting to Jetson" << std::endl;
 			//TODO: Non-blocking!
-			//jetson = new SocketClient (5081, (char*)"tegra-ubuntu.local");
+			jetson = new SocketClient (5801, (char*)"tegra-ubuntu.local");
+			profile = new MotionProfile(tln_drbase_left_enc, tln_drbase_right_enc, jetson, ControlMode::PercentOutput);
 			std::cout << "Finished." << std::endl;
-
-			//profile = new MotionProfile(tln_drbase_left_enc, tln_drbase_right_enc, jetson);
 
 			std::cout << "============ Initialization complete. ============" << std::endl;
 		}
@@ -133,10 +132,10 @@ class Robot : public IterativeRobot {
 			tln_drbase_left_enc->ConfigPeakOutputReverse(-1.0, talon_timeout_ms);
 			tln_drbase_right_enc->ConfigPeakOutputForward(1.0, talon_timeout_ms);
 			tln_drbase_right_enc->ConfigPeakOutputReverse(-1.0, talon_timeout_ms);
-			//scissor_control->start(
-			//		SmartDashboard::GetNumber("DB/Slider 0", 0.0) / scissorlift_one_rotation_nu,
-			//		SmartDashboard::GetNumber("DB/Slider 1", 0.0)
-			//		);
+			scissor_control->start(
+					SmartDashboard::GetNumber("DB/Slider 0", 0.0) / scissorlift_one_rotation_nu,
+					SmartDashboard::GetNumber("DB/Slider 1", 0.0)
+					);
 			
 			//scissor_control->start(scissorlift_p_gain, scissorlift_max_speed);
 		}
@@ -168,11 +167,11 @@ class Robot : public IterativeRobot {
 		}
 
 		void AutonomousInit() {
-			//profile->start(ControlMode::PercentOutput, 0.0);
+			profile->start(0.2);
 		}
 
 		void AutonomousPeriodic() {
-			//std::cout << "Inputs: "; profile->print_inputs();
+			std::cout << "Inputs: "; profile->print_inputs();
 			std::cout << "Closed loop error: " << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
 		}
 

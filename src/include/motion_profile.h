@@ -10,11 +10,11 @@
 
 class MotionProfile {
 	public:
-		MotionProfile(TalonSRX* tln_left, TalonSRX* tln_right, Socket* jetson) : tln_left(tln_left), tln_right(tln_right), jetson(jetson) {
+		MotionProfile(TalonSRX* tln_left, TalonSRX* tln_right, Socket* jetson, ControlMode mode) : tln_left(tln_left), tln_right(tln_right), jetson(jetson), mode(mode) {
 			notifier = new Notifier(&MotionProfile::update, this);
 		}
 		~MotionProfile();
-		void start(ControlMode mode, float scalar);
+		void start(float scalar);
 		void stop();
 		void print_inputs();
 	private:	
