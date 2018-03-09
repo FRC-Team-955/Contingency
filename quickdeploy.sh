@@ -1,4 +1,5 @@
-ROBOT_IP=roborio-955-frc.local
+#ROBOT_IP=roborio-955-frc.local
+ROBOT_IP=10.9.55.2
 ROBOT_USER=lvuser
 ./gradlew build
 ssh $ROBOT_USER@$ROBOT_IP rm -v frcUserProgram

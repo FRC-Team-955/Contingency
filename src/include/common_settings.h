@@ -30,7 +30,9 @@ enum LimitSwitchState {
 };
 
 // Solenoid
-const int solenoid_shifter_idx = 1;
+const int solenoid_shifter_idx_a = 0;
+const int solenoid_shifter_idx_b = 1;
+const int shift_counts_max = 72;
 
 // Limits
 const float scissorlift_one_rotation_nu = 4096.0;
@@ -42,7 +44,7 @@ const float drbase_f_gain_left = 0.19120;
 const float drbase_f_gain_right = 0.19120;
 
 // Scissor lift coeffs
-const float scissorlift_p_gain = 0.3;
+const float scissorlift_p_gain = 0.3 / scissorlift_one_rotation_nu;
 const float scissorlift_max_speed = 1.0;
 
 #endif

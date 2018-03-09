@@ -18,6 +18,7 @@
 #include <socket.h>
 #include <shared_network_types.h>
 #include <motion_profile.h>
+#include <crapauto.h>
 
 //TODO: 
 //      FPID Tuning with the Smart Dashboard
@@ -35,7 +36,8 @@ class Robot : public IterativeRobot {
 #undef TALON
 		DigitalInput *dio_left, *dio_right;
 		Joystick *joy;
-		//Solenoid *drive_base_shifter;
+		Solenoid *drive_base_shifter_a;
+		Solenoid *drive_base_shifter_b;
 
 		// Controller components
 		Diagnostic *diag;
@@ -43,11 +45,14 @@ class Robot : public IterativeRobot {
 		ScissorLift *scissor;
 
 		// Control managers (User control, auto)
-		DriveBase *drive_base;
+		DriveBase *drive_base_control;
 		ScissorLiftController* scissor_control;
 		MotionProfile* profile;
 
+		CrapAuto* crap_auto;
+
 		void FPID() {
+			//TODO: Hardcoded PIDF
 			tln_scissor_left_enc->Config_kF(talon_pid_loop_idx, 0, talon_timeout_ms);
 			tln_scissor_left_enc->Config_kP(talon_pid_loop_idx, 1, talon_timeout_ms);
 			tln_scissor_left_enc->Config_kI(talon_pid_loop_idx, 0, talon_timeout_ms);
@@ -111,25 +116,32 @@ class Robot : public IterativeRobot {
 			scissor = new ScissorLift(tln_scissor_left_enc, tln_scissor_right_enc, dio_left, dio_right);
 			scissor_control = new ScissorLiftController(joy, scissor, scissorlift_one_rotation_nu * 3.0);
 
-			//drive_base_shifter = new Solenoid(solenoid_shifter_idx);
+			drive_base_shifter_a = new Solenoid(solenoid_shifter_idx_a);
+			drive_base_shifter_b = new Solenoid(solenoid_shifter_idx_b);
 
-			drive_base = new DriveBase(
+			drive_base_control = new DriveBase(
 					joy,
 					tln_drbase_left_enc,
 					tln_drbase_right_enc,
+					drive_base_shifter_a,
+					drive_base_shifter_b,
 					drive_x_axis_idx,
 					drive_y_axis_idx,
 					drive_x_axis_exponent,
 					drive_y_axis_exponent,
-					-6000.0, ControlMode::Velocity);
+					-6000.0, 
+					shift_counts_max,
+					ControlMode::Velocity);
 					//-1.0, ControlMode::PercentOutput);
 
-			std::cout << "Connecting to Jetson" << std::endl;
 			//TODO: Non-blocking!
 			//      Change to static IPs!!
+			//std::cout << "Connecting to Jetson" << std::endl;
 			//jetson = new SocketClient (5801, (char*)"tegra-ubuntu.local");
-			profile = new MotionProfile(tln_drbase_left_enc, tln_drbase_right_enc, jetson, ControlMode::Velocity);
-			std::cout << "Finished." << std::endl;
+			//profile = new MotionProfile(tln_drbase_left_enc, tln_drbase_right_enc, jetson, ControlMode::Velocity);
+			//std::cout << "Finished." << std::endl;
+
+			crap_auto = new CrapAuto(tln_drbase_left_enc, tln_drbase_right_enc, 1.0, 1.5);
 
 			std::cout << "============ Initialization complete. ============" << std::endl;
 		}
@@ -141,6 +153,7 @@ class Robot : public IterativeRobot {
 
 		void TeleopInit() {
 			FPID();
+			drive_base_control->reset_shift_count();	
 			tln_drbase_left_enc->ConfigPeakOutputForward(1.0, talon_timeout_ms);
 			tln_drbase_left_enc->ConfigPeakOutputReverse(-1.0, talon_timeout_ms);
 			tln_drbase_right_enc->ConfigPeakOutputForward(1.0, talon_timeout_ms);
@@ -150,21 +163,19 @@ class Robot : public IterativeRobot {
 			//		SmartDashboard::GetNumber("DB/Slider 1", 0.0)
 			//		);
 			
-			scissor_control->start(scissorlift_p_gain / scissorlift_one_rotation_nu, scissorlift_max_speed);
+			scissor_control->start(scissorlift_p_gain, scissorlift_max_speed);
 		}
 
 		float pos = 0.0;
 		void TeleopPeriodic() {
-			drive_base->update();
+			drive_base_control->update();
 			scissor_control->update();
 
-			std::cout << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
+			//std::cout << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
 			//std::cout << tln_drbase_left_enc->GetSelectedSensorVelocity(0) << " : " << tln_drbase_right_enc->GetSelectedSensorVelocity(0) << std::endl;
 
-			if (joy->GetRawButton(3)) {
+			if (joy->GetRawButton(4)) {
 				tln_climb_enc->Set(ControlMode::PercentOutput, climb_speed);	
-			} else if (joy->GetRawButton(4)) {
-				tln_climb_enc->Set(ControlMode::PercentOutput, -climb_speed);	
 			} else {
 				tln_climb_enc->Set(ControlMode::PercentOutput, 0);	
 			}
@@ -183,12 +194,14 @@ class Robot : public IterativeRobot {
 		}
 
 		void AutonomousInit() {
-			profile->start((4096.0 * 100.0) / (104.775 * M_PI * 0.6));
+			//crap_auto->start();
+			//profile->start((4096.0 * 100.0) / (104.775 * M_PI * 0.6));
 		}
 
 		void AutonomousPeriodic() {
-			std::cout << "Inputs: "; profile->print_inputs();
-			std::cout << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
+			//crap_auto->update();
+			//std::cout << "Inputs: "; profile->print_inputs();
+			//std::cout << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
 		}
 
 		bool display_results_once = false;
