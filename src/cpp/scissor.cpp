@@ -91,7 +91,7 @@ float ScissorLift::get_target() {
 
 void ScissorLift::set_position(float target) {
 	// Don't set the target if you're going to go out of position limits
-	if (target <= 0 && target >= -scissorlift_one_rotation_nu * 5.0 * 7.5) {
+	if (target <= scissorlift_minumum_height_in * scissorlift_in_to_nu && target >= scissorlift_maximum_height_in * scissorlift_in_to_nu) {
 		this->target = target;
 	}
 }

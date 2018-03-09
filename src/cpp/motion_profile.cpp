@@ -28,7 +28,7 @@ void MotionProfile::update() {
 	}
 
 	bool response = false;
-	tln_left->Set(mode, command.motion.velocity_left * scalar);
+	tln_left->Set(mode, -command.motion.velocity_left * scalar);
 	tln_right->Set(mode, command.motion.velocity_right * scalar);
 
 	jetson->write_to(&response, sizeof(response));
@@ -41,8 +41,8 @@ void MotionProfile::update() {
 
 void MotionProfile::print_inputs() {
 	std::cout << 
-		command.motion.velocity_left << 
+		command.motion.velocity_left * scalar << 
 		" : " << 
-		command.motion.velocity_right << 
+		command.motion.velocity_right * scalar << 
 		std::endl;
 }

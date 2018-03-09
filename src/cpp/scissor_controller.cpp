@@ -10,10 +10,8 @@ void ScissorLiftController::update() {
 	bool go_up = joy->GetRawAxis(3) > 0.2;
 	bool go_dn = joy->GetRawAxis(2) > 0.2;
 	if (go_up && reset_up) {
-		if (scissor->get_target() < scissorlift_maximum_height_nu) {
-			reset_up = false;
-			scissor->set_position(scissor->get_target() - position_delta);
-		}
+		reset_up = false;
+		scissor->set_position(scissor->get_target() - position_delta);
 	} else if (go_dn && reset_dn) {
 		reset_dn = false;
 		scissor->set_position(scissor->get_target() + position_delta);

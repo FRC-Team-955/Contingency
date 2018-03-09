@@ -34,10 +34,15 @@ const int solenoid_shifter_idx = 1;
 
 // Limits
 const float scissorlift_one_rotation_nu = 4096.0;
-const float scissorlift_maximum_height_nu = scissorlift_one_rotation_nu * 5.0 * 7.5;
+const float scissorlift_minumum_height_in = 0.0;
+const float scissorlift_maximum_height_in = -7.5;
+const float scissorlift_in_to_nu = scissorlift_one_rotation_nu * 5.0;
+
+const float drbase_f_gain_left = 0.19120;
+const float drbase_f_gain_right = 0.19120;
 
 // Scissor lift coeffs
-const float scissorlift_p_gain = 1.16;
+const float scissorlift_p_gain = 0.3;
 const float scissorlift_max_speed = 1.0;
 
 #endif
