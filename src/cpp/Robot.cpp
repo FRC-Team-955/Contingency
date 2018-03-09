@@ -163,13 +163,13 @@ class Robot : public IterativeRobot {
 			//		SmartDashboard::GetNumber("DB/Slider 1", 0.0)
 			//		);
 			
-			scissor_control->start(scissorlift_p_gain, scissorlift_max_speed);
+			//scissor_control->start(scissorlift_p_gain, scissorlift_max_speed);
 		}
 
 		float pos = 0.0;
 		void TeleopPeriodic() {
 			drive_base_control->update();
-			scissor_control->update();
+			//scissor_control->update();
 
 			//std::cout << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
 			//std::cout << tln_drbase_left_enc->GetSelectedSensorVelocity(0) << " : " << tln_drbase_right_enc->GetSelectedSensorVelocity(0) << std::endl;
