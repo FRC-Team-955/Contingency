@@ -141,7 +141,7 @@ class Robot : public IterativeRobot {
 			//profile = new MotionProfile(tln_drbase_left_enc, tln_drbase_right_enc, jetson, ControlMode::Velocity);
 			//std::cout << "Finished." << std::endl;
 
-			crap_auto = new CrapAuto(tln_drbase_left_enc, tln_drbase_right_enc, 1.0, 1.5);
+			crap_auto = new CrapAuto(tln_drbase_left_enc, tln_drbase_right_enc, 1.0, 1.2);
 
 			std::cout << "============ Initialization complete. ============" << std::endl;
 		}
@@ -194,12 +194,12 @@ class Robot : public IterativeRobot {
 		}
 
 		void AutonomousInit() {
-			//crap_auto->start();
+			crap_auto->start();
 			//profile->start((4096.0 * 100.0) / (104.775 * M_PI * 0.6));
 		}
 
 		void AutonomousPeriodic() {
-			//crap_auto->update();
+			crap_auto->update();
 			//std::cout << "Inputs: "; profile->print_inputs();
 			//std::cout << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
 		}
