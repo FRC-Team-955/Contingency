@@ -3,6 +3,8 @@
 void CrapAuto::start() {
 	timer.Reset();
 	timer.Start();
+	shifter_a->Set(false);
+	shifter_b->Set(true);
 	left->Set(ControlMode::PercentOutput, -speed);	
 	right->Set(ControlMode::PercentOutput, speed);	
 }
