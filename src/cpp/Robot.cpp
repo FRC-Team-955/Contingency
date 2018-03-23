@@ -3,6 +3,7 @@
 #include <Joystick.h>
 
 #include <iostream>
+#include <fstream>
 #include <math.h>
 
 #include <common_settings.h>
@@ -18,7 +19,6 @@
 #include <socket.h>
 #include <shared_network_types.h>
 #include <motion_profile.h>
-#include <crapauto.h>
 
 //TODO: 
 //      FPID Tuning with the Smart Dashboard
@@ -48,8 +48,7 @@ class Robot : public IterativeRobot {
 		DriveBase *drive_base_control;
 		ScissorLiftController* scissor_control;
 		MotionProfile* profile;
-
-		CrapAuto* crap_auto;
+		std::ofstream velocity_power_map;
 
 		void FPID() {
 			//TODO: Hardcoded PIDF
@@ -73,18 +72,18 @@ class Robot : public IterativeRobot {
 			//tln_drbase_right_enc->Config_kI(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 7", "0.0").c_str()), talon_timeout_ms);
 			//tln_drbase_right_enc->Config_kD(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 8", "0.0").c_str()), talon_timeout_ms);
 
-			//tln_drbase_left_enc->Config_kF(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 0", "0.0").c_str()), talon_timeout_ms);
-			tln_drbase_left_enc->Config_kP(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 1", "0.0").c_str()), talon_timeout_ms);
-			tln_drbase_left_enc->Config_kI(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 2", "0.0").c_str()), talon_timeout_ms);
-			tln_drbase_left_enc->Config_kD(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 3", "0.0").c_str()), talon_timeout_ms);
+			tln_drbase_left_enc->Config_kP(talon_pid_loop_idx, SmartDashboard::GetNumber("P_left", 0.0), talon_timeout_ms);
+			tln_drbase_left_enc->Config_kI(talon_pid_loop_idx, SmartDashboard::GetNumber("I_left", 0.0), talon_timeout_ms);
+			tln_drbase_left_enc->Config_kD(talon_pid_loop_idx, SmartDashboard::GetNumber("D_left", 0.0), talon_timeout_ms);
 
-			//tln_drbase_right_enc->Config_kF(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 5", "0.0").c_str()), talon_timeout_ms);
-			tln_drbase_right_enc->Config_kP(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 6", "0.0").c_str()), talon_timeout_ms);
-			tln_drbase_right_enc->Config_kI(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 7", "0.0").c_str()), talon_timeout_ms);
-			tln_drbase_right_enc->Config_kD(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 8", "0.0").c_str()), talon_timeout_ms);
+			tln_drbase_right_enc->Config_kP(talon_pid_loop_idx, SmartDashboard::GetNumber("P_right", 0.0), talon_timeout_ms);
+			tln_drbase_right_enc->Config_kI(talon_pid_loop_idx, SmartDashboard::GetNumber("I_right", 0.0), talon_timeout_ms);
+			tln_drbase_right_enc->Config_kD(talon_pid_loop_idx, SmartDashboard::GetNumber("D_right", 0.0), talon_timeout_ms);
 		}
 
 		void RobotInit() {
+			velocity_power_map.open ("/home/lvuser/vpm.csv");
+
 			std::cout << "================= Initializing... =================" << std::endl;
 #define TALON(NAME, NUM) tln_##NAME = new TalonSRX(NUM); \
 			tln_##NAME->ConfigPeakOutputForward(1.0, talon_timeout_ms); \
@@ -94,6 +93,8 @@ class Robot : public IterativeRobot {
 			std::cout << "Talon " << #NAME << " initialized with number " << NUM << std::endl;
 #include <talons.h>
 #undef TALON
+			tln_drbase_left_enc->ConfigClosedloopRamp(0.05, 10);
+			tln_drbase_right_enc->ConfigClosedloopRamp(0.05, 10);
 			tln_drbase_left_fol->Set(ControlMode::Follower, tln_drbase_left_enc->GetDeviceID());
 			tln_drbase_right_fol->Set(ControlMode::Follower, tln_drbase_right_enc->GetDeviceID());
 
@@ -129,40 +130,71 @@ class Robot : public IterativeRobot {
 					drive_y_axis_idx,
 					drive_x_axis_exponent,
 					drive_y_axis_exponent,
-					-6000.0, 
+					//-6000.0, 
+					-1.0,
 					shift_counts_max,
-					ControlMode::Velocity);
-					//-1.0, ControlMode::PercentOutput);
+					//ControlMode::Velocity);
+									 ControlMode::PercentOutput);
 
 			//TODO: Non-blocking!
 			//      Change to static IPs!!
-			//std::cout << "Connecting to Jetson" << std::endl;
-			//jetson = new SocketClient (5801, (char*)"tegra-ubuntu.local");
-			//profile = new MotionProfile(tln_drbase_left_enc, tln_drbase_right_enc, jetson, ControlMode::Velocity);
-			//std::cout << "Finished." << std::endl;
+			std::cout << "Connecting to Jetson" << std::endl;
+			jetson = new SocketClient (5801, (char*)"tegra-ubuntu.local");
+			std::cout << "Connected!" << std::endl;
 
-			crap_auto = new CrapAuto(tln_drbase_left_enc, tln_drbase_right_enc, drive_base_shifter_a, drive_base_shifter_b, 1.0, 1.4);
+			JetsonCommand setup;
+			setup.setup_data.delta_time = 10;
+			setup.setup_data.max_velocity = 1.0;
+			setup.setup_data.min_velocity = 0.1;
+			setup.setup_data.wheel_width = 660.0;
+			setup.setup_data.layout_bits = (JetsonCommand::Setup::LayoutBits)(0);
+			setup.type = JetsonCommand::Type::Setup;
+			profile = new MotionProfile(
+					tln_drbase_left_enc,
+					tln_drbase_right_enc,
+					tln_intake_left,
+					tln_intake_right,
+					jetson,
+					ControlMode::Velocity,
+					setup,
+					(4096.0 * 100.0) / (104.775 * M_PI * 0.6));
+
+			SmartDashboard::PutNumber("P_right", 0.0);
+			SmartDashboard::PutNumber("I_right", 0.0);
+			SmartDashboard::PutNumber("D_right", 0.0);
+			SmartDashboard::PutNumber("P_left", 0.0);
+			SmartDashboard::PutNumber("I_left", 0.0);
+			SmartDashboard::PutNumber("D_left", 0.0);
+			//0.25);
+
+			//std::cout << "Finished." << std::endl;
 
 			std::cout << "============ Initialization complete. ============" << std::endl;
 		}
 
 		void DisabledInit() {
-			//profile->stop();
+			std::cout << tln_drbase_left_enc->GetSelectedSensorPosition(0) << " : " << tln_drbase_right_enc->GetSelectedSensorPosition(0) << std::endl;
+			profile->stop();
 			scissor_control->stop();
 		}
 
 		void TeleopInit() {
 			FPID();
+			tln_drbase_left_enc->ConfigClosedloopRamp(0.05, 10);
+			tln_drbase_right_enc->ConfigClosedloopRamp(0.05, 10);
 			drive_base_control->reset_shift_count();	
 			tln_drbase_left_enc->ConfigPeakOutputForward(1.0, talon_timeout_ms);
 			tln_drbase_left_enc->ConfigPeakOutputReverse(-1.0, talon_timeout_ms);
 			tln_drbase_right_enc->ConfigPeakOutputForward(1.0, talon_timeout_ms);
 			tln_drbase_right_enc->ConfigPeakOutputReverse(-1.0, talon_timeout_ms);
+
+			tln_drbase_left_enc->SetSelectedSensorPosition(0, 0, 10);
+			tln_drbase_right_enc->SetSelectedSensorPosition(0, 0, 10);
 			//scissor_control->start(
 			//		SmartDashboard::GetNumber("DB/Slider 0", 0.0) / scissorlift_one_rotation_nu,
 			//		SmartDashboard::GetNumber("DB/Slider 1", 0.0)
 			//		);
-			
+
 			scissor_control->start(scissorlift_p_gain, scissorlift_max_speed);
 		}
 
@@ -171,8 +203,16 @@ class Robot : public IterativeRobot {
 			drive_base_control->update();
 			scissor_control->update();
 
+			SmartDashboard::PutNumber("Error left" , tln_drbase_left_enc->GetClosedLoopError(0));
+			SmartDashboard::PutNumber("Error right" , tln_drbase_right_enc->GetClosedLoopError(0));
 			//std::cout << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
 			//std::cout << tln_drbase_left_enc->GetSelectedSensorVelocity(0) << " : " << tln_drbase_right_enc->GetSelectedSensorVelocity(0) << std::endl;
+			velocity_power_map << 
+				tln_drbase_left_enc->GetSelectedSensorVelocity(0) << ", " << 
+				tln_drbase_left_enc->GetMotorOutputPercent() << ", " <<
+				tln_drbase_right_enc->GetSelectedSensorVelocity(0) << ", " << 
+				tln_drbase_right_enc->GetMotorOutputPercent() <<
+				std::endl;
 
 			if (joy->GetRawButton(4)) {
 				tln_climb_enc->Set(ControlMode::PercentOutput, climb_speed);	
@@ -190,46 +230,61 @@ class Robot : public IterativeRobot {
 				tln_intake_left->Set(ControlMode::PercentOutput, 0);	
 				tln_intake_right->Set(ControlMode::PercentOutput, 0);	
 			}
-			
+
 		}
 
 		void AutonomousInit() {
-			crap_auto->start();
-			//profile->start((4096.0 * 100.0) / (104.775 * M_PI * 0.6));
+			tln_drbase_left_enc->ConfigClosedloopRamp(0.0, 10);
+			tln_drbase_right_enc->ConfigClosedloopRamp(0.0, 10);
+
+			tln_drbase_left_enc->SetSelectedSensorPosition(0, 0, 10);
+			tln_drbase_right_enc->SetSelectedSensorPosition(0, 0, 10);
+
+			profile->start((JetsonCommand::Setup::LayoutBits) 0 );
 		}
 
 		void AutonomousPeriodic() {
-			crap_auto->update();
-			//std::cout << "Inputs: "; profile->print_inputs();
-			//std::cout << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
+			std::cout << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
 		}
 
 		bool display_results_once = false;
 		void TestInit() {
-			display_results_once = false;
-			diag->reset();
-			diag->push_diagnostic(new SRXTest(tln_intake_left, 1.0, intake_speed_in));
-			diag->push_diagnostic(new SRXTest(tln_intake_right, 1.0, intake_speed_in));
+			/*
+				display_results_once = false;
+				diag->reset();
+				diag->push_diagnostic(new SRXTest(tln_intake_left, 1.0, intake_speed_in));
+				diag->push_diagnostic(new SRXTest(tln_intake_right, 1.0, intake_speed_in));
 
-			diag->push_diagnostic(new EncodedSRXTest(tln_drbase_left_enc, 2.0, 0.25));
-			diag->push_diagnostic(new EncodedSRXTest(tln_drbase_right_enc, 2.0, 0.25));
+				diag->push_diagnostic(new EncodedSRXTest(tln_drbase_left_enc, 2.0, 0.25));
+				diag->push_diagnostic(new EncodedSRXTest(tln_drbase_right_enc, 2.0, 0.25));
 
-			auto lm_test_left = new LimitSwitchTest(dio_left);
-			auto lm_test_right = new LimitSwitchTest(dio_right);
-			lm_test_left->subtests.push_back(lm_test_right);
-			auto scissor_home = new ScissorHomeTest(scissor, 0.25);
-			lm_test_right->subtests.push_back(scissor_home);
-			
-			diag->push_diagnostic(lm_test_left);
-			diag->start();
+				auto lm_test_left = new LimitSwitchTest(dio_left);
+				auto lm_test_right = new LimitSwitchTest(dio_right);
+				lm_test_left->subtests.push_back(lm_test_right);
+				auto scissor_home = new ScissorHomeTest(scissor, 0.25);
+				lm_test_right->subtests.push_back(scissor_home);
+
+				diag->push_diagnostic(lm_test_left);
+				diag->start();
+				*/
+			tln_scissor_left_enc->ConfigPeakOutputForward(1.0, 10);
+			tln_scissor_left_enc->ConfigPeakOutputReverse(-1.0, 10);
+			tln_scissor_right_enc->ConfigPeakOutputForward(1.0, 10);
+			tln_scissor_right_enc->ConfigPeakOutputReverse(-1.0, 10);
 		}
 
 		void TestPeriodic() {
-			if (!display_results_once && !diag->control()) {
+			/*
+				if (!display_results_once && !diag->control()) {
 				diag->results();
 				diag->reset();
 				display_results_once = true;
-			}
+				}
+				*/
+			tln_scissor_left_enc->Set(ControlMode::PercentOutput, joy->GetRawAxis(1));
+			tln_scissor_right_enc->Set(ControlMode::PercentOutput, joy->GetRawAxis(5));
+			std::cout << tln_scissor_left_enc->GetSelectedSensorPosition(0) << " : " <<
+				tln_scissor_right_enc->GetSelectedSensorPosition(0) << std::endl;
 		}
 };
 
