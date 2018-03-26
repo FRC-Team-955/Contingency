@@ -48,7 +48,6 @@ class Robot : public IterativeRobot {
 		DriveBase *drive_base_control;
 		ScissorLiftController* scissor_control;
 		MotionProfile* profile;
-		std::ofstream velocity_power_map;
 
 		void FPID() {
 			//TODO: Hardcoded PIDF
@@ -62,6 +61,15 @@ class Robot : public IterativeRobot {
 			tln_scissor_right_enc->Config_kI(talon_pid_loop_idx, 0, talon_timeout_ms);
 			tln_scissor_right_enc->Config_kD(talon_pid_loop_idx, 10, talon_timeout_ms);
 
+
+			tln_drbase_left_enc->Config_kP(talon_pid_loop_idx, 1.5, talon_timeout_ms);
+			tln_drbase_left_enc->Config_kI(talon_pid_loop_idx, 0, talon_timeout_ms);
+			tln_drbase_left_enc->Config_kD(talon_pid_loop_idx, 10, talon_timeout_ms);
+
+			tln_drbase_right_enc->Config_kP(talon_pid_loop_idx, 1.5, talon_timeout_ms);
+			tln_drbase_right_enc->Config_kI(talon_pid_loop_idx, 0, talon_timeout_ms);
+			tln_drbase_right_enc->Config_kD(talon_pid_loop_idx, 10, talon_timeout_ms);
+
 			tln_drbase_left_enc->Config_kF(talon_pid_loop_idx, drbase_f_gain_left, talon_timeout_ms);
 			//tln_drbase_left_enc->Config_kP(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 1", "0.0").c_str()), talon_timeout_ms);
 			//tln_drbase_left_enc->Config_kI(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 2", "0.0").c_str()), talon_timeout_ms);
@@ -72,6 +80,7 @@ class Robot : public IterativeRobot {
 			//tln_drbase_right_enc->Config_kI(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 7", "0.0").c_str()), talon_timeout_ms);
 			//tln_drbase_right_enc->Config_kD(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 8", "0.0").c_str()), talon_timeout_ms);
 
+			/*
 			tln_drbase_left_enc->Config_kP(talon_pid_loop_idx, SmartDashboard::GetNumber("P_left", 0.0), talon_timeout_ms);
 			tln_drbase_left_enc->Config_kI(talon_pid_loop_idx, SmartDashboard::GetNumber("I_left", 0.0), talon_timeout_ms);
 			tln_drbase_left_enc->Config_kD(talon_pid_loop_idx, SmartDashboard::GetNumber("D_left", 0.0), talon_timeout_ms);
@@ -79,11 +88,10 @@ class Robot : public IterativeRobot {
 			tln_drbase_right_enc->Config_kP(talon_pid_loop_idx, SmartDashboard::GetNumber("P_right", 0.0), talon_timeout_ms);
 			tln_drbase_right_enc->Config_kI(talon_pid_loop_idx, SmartDashboard::GetNumber("I_right", 0.0), talon_timeout_ms);
 			tln_drbase_right_enc->Config_kD(talon_pid_loop_idx, SmartDashboard::GetNumber("D_right", 0.0), talon_timeout_ms);
+			*/
 		}
 
 		void RobotInit() {
-			velocity_power_map.open ("/home/lvuser/vpm.csv");
-
 			std::cout << "================= Initializing... =================" << std::endl;
 #define TALON(NAME, NUM) tln_##NAME = new TalonSRX(NUM); \
 			tln_##NAME->ConfigPeakOutputForward(1.0, talon_timeout_ms); \
@@ -130,11 +138,11 @@ class Robot : public IterativeRobot {
 					drive_y_axis_idx,
 					drive_x_axis_exponent,
 					drive_y_axis_exponent,
-					//-6000.0, 
+					//-5000.0, 
 					-1.0,
 					shift_counts_max,
 					//ControlMode::Velocity);
-									 ControlMode::PercentOutput);
+					ControlMode::PercentOutput);
 
 			//TODO: Non-blocking!
 			//      Change to static IPs!!
@@ -144,9 +152,9 @@ class Robot : public IterativeRobot {
 
 			JetsonCommand setup;
 			setup.setup_data.delta_time = 10;
-			setup.setup_data.max_velocity = 1.0;
+			setup.setup_data.max_velocity = 0.75;
 			setup.setup_data.min_velocity = 0.1;
-			setup.setup_data.wheel_width = 660.0;
+			setup.setup_data.wheel_width = 635.0;
 			setup.setup_data.layout_bits = (JetsonCommand::Setup::LayoutBits)(0);
 			setup.type = JetsonCommand::Type::Setup;
 			profile = new MotionProfile(
@@ -157,7 +165,7 @@ class Robot : public IterativeRobot {
 					jetson,
 					ControlMode::Velocity,
 					setup,
-					(4096.0 * 100.0) / (104.775 * M_PI * 0.6));
+					(4096.0 * 100.0) / (0.728 * 104.775 * M_PI));
 
 			SmartDashboard::PutNumber("P_right", 0.0);
 			SmartDashboard::PutNumber("I_right", 0.0);
@@ -173,7 +181,7 @@ class Robot : public IterativeRobot {
 		}
 
 		void DisabledInit() {
-			std::cout << tln_drbase_left_enc->GetSelectedSensorPosition(0) << " : " << tln_drbase_right_enc->GetSelectedSensorPosition(0) << std::endl;
+			std::cout << 0.728 * 104.775 * M_PI * (tln_drbase_left_enc->GetSelectedSensorPosition(0) / 4096.0) << " : " << tln_drbase_right_enc->GetSelectedSensorPosition(0) << std::endl;
 			profile->stop();
 			scissor_control->stop();
 		}
@@ -203,16 +211,10 @@ class Robot : public IterativeRobot {
 			drive_base_control->update();
 			scissor_control->update();
 
-			SmartDashboard::PutNumber("Error left" , tln_drbase_left_enc->GetClosedLoopError(0));
-			SmartDashboard::PutNumber("Error right" , tln_drbase_right_enc->GetClosedLoopError(0));
-			//std::cout << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
+			//SmartDashboard::PutNumber("Error left" , tln_drbase_left_enc->GetClosedLoopError(0));
+			//SmartDashboard::PutNumber("Error right" , tln_drbase_right_enc->GetClosedLoopError(0));
+			std::cout << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
 			//std::cout << tln_drbase_left_enc->GetSelectedSensorVelocity(0) << " : " << tln_drbase_right_enc->GetSelectedSensorVelocity(0) << std::endl;
-			velocity_power_map << 
-				tln_drbase_left_enc->GetSelectedSensorVelocity(0) << ", " << 
-				tln_drbase_left_enc->GetMotorOutputPercent() << ", " <<
-				tln_drbase_right_enc->GetSelectedSensorVelocity(0) << ", " << 
-				tln_drbase_right_enc->GetMotorOutputPercent() <<
-				std::endl;
 
 			if (joy->GetRawButton(4)) {
 				tln_climb_enc->Set(ControlMode::PercentOutput, climb_speed);	
@@ -221,12 +223,15 @@ class Robot : public IterativeRobot {
 			}
 
 			if (joy->GetRawButton(6)) {
+				drive_base_control->max_velocity = -0.5;
 				tln_intake_left->Set(ControlMode::PercentOutput, intake_speed_in);	
 				tln_intake_right->Set(ControlMode::PercentOutput, intake_speed_in);	
 			} else if (joy->GetRawButton(5)) {
+				drive_base_control->max_velocity = -0.5;
 				tln_intake_left->Set(ControlMode::PercentOutput, intake_speed_out);	
 				tln_intake_right->Set(ControlMode::PercentOutput, intake_speed_out);	
 			} else {
+				drive_base_control->max_velocity = -1.0;
 				tln_intake_left->Set(ControlMode::PercentOutput, 0);	
 				tln_intake_right->Set(ControlMode::PercentOutput, 0);	
 			}

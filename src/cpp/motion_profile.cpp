@@ -29,17 +29,26 @@ void MotionProfile::update() {
 	// std::cerr << "Recv: " << input.type << std::endl;
 	switch (input.type) {
 		case RioCommand::Type::Motion:
-			tln_drbase_left->Set(mode, -input.motion.velocity_left * scalar);
-			tln_drbase_right->Set(mode, input.motion.velocity_right * scalar);
-			if (input.action & RioCommand::Action::Cube_Intake) {
-				tln_intake_left->Set(ControlMode::PercentOutput, 0.4);
-				tln_intake_right->Set(ControlMode::PercentOutput, 0.4);
-			} else {
-				tln_intake_left->Set(ControlMode::PercentOutput, 0);
-				tln_intake_right->Set(ControlMode::PercentOutput, 0);
+			{
+				tln_drbase_left->Set(mode, -input.motion.velocity_left * scalar);
+				tln_drbase_right->Set(mode, input.motion.velocity_right * scalar);
+
+				float fgain_left = (((fabs(input.motion.velocity_left * scalar) * 0.000212572541) + 0.2377763902) * 1023.0) / fabs(input.motion.velocity_left * scalar);
+				float fgain_right = (((fabs(input.motion.velocity_right * scalar) * 0.000212572541) + 0.2377763902) * 1023.0) / fabs(input.motion.velocity_right * scalar);
+
+				//tln_drbase_left->Config_kF(0, std::min(fgain_left, 4.0f), 10);
+				//tln_drbase_right->Config_kF(0, std::min(fgain_right, 4.0f), 10);
+
+				if (input.action & RioCommand::Action::Cube_Expel) {
+					tln_intake_left->Set(ControlMode::PercentOutput, -1.0);
+					tln_intake_right->Set(ControlMode::PercentOutput, -1.0);
+				} else {
+					tln_intake_left->Set(ControlMode::PercentOutput, 0);
+					tln_intake_right->Set(ControlMode::PercentOutput, 0);
+				}
+				output.type = JetsonCommand::Type::Request_Motion;
+				jetson->write_to(&output, sizeof(output));
 			}
-			output.type = JetsonCommand::Type::Request_Motion;
-			jetson->write_to(&output, sizeof(output));
 			break;
 		case RioCommand::Type::Request_Setup:
 			jetson->write_to(&setup, sizeof(setup));
@@ -56,12 +65,8 @@ void MotionProfile::update() {
 			break;
 	}
 
-
-	//std::cout << input.motion.velocity_left * scalar << " : "
-	//	<< input.motion.velocity_right * scalar << std::endl;
-
-	//std::cout << input.motion.velocity_left << " : "
-	//	<< input.motion.velocity_right << std::endl;
+	std::cout << "MOTION PROFILE: " <<  input.motion.velocity_left * scalar << " : "
+		<< input.motion.velocity_right * scalar << std::endl;
 }
 
 MotionProfile::~MotionProfile() {

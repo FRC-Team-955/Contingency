@@ -23,6 +23,7 @@ class DriveBase {
 
 		void update();
 		void reset_shift_count();
+		float max_velocity;
 	private:
 		ControlMode mode;
 
@@ -34,7 +35,6 @@ class DriveBase {
 		bool reverse = false;
 		int pov_last = -1;
 
-		float max_velocity;
 		int shift_counts_max;
 		int shift_counts;
 

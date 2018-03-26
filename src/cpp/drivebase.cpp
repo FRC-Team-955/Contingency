@@ -66,8 +66,18 @@ DriveBase::DriveBase(Joystick *joy,
 			tln_left->Set(mode, -right_tracks * max_velocity);
 			tln_right->Set(mode, -left_tracks * max_velocity);
 		} else {
-			tln_left->Set(mode, left_tracks * max_velocity);
-			tln_right->Set(mode, right_tracks * max_velocity);
+			float velocity_left = left_tracks * max_velocity;
+			float velocity_right = right_tracks * max_velocity;
+
+			//float fgain_left = (((fabs(velocity_left) * 0.000212572541) + 0.2377763902) * 1023.0) / fabs(velocity_left);
+			//float fgain_right = (((fabs(velocity_right) * 0.000212572541) + 0.2377763902) * 1023.0) / fabs(velocity_right);
+
+			//tln_left->Config_kF(0, std::min(fgain_left, 4.0f), 10);
+			//tln_right->Config_kF(0, std::min(fgain_right, 4.0f), 10);
+			//std::cout << fgain_left << " : " << fgain_right << std::endl;
+
+			tln_left->Set(mode, velocity_left);
+			tln_right->Set(mode, velocity_right);
 		}
 		pov_last = pov;
 	}
