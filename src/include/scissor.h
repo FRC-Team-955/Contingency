@@ -13,6 +13,8 @@ class ScissorLift {
 		ScissorLift(TalonSRX* talon_left, TalonSRX* talon_right, DigitalInput* dio_left, DigitalInput* dio_right)
 			: talon_left(talon_left), talon_right(talon_right), dio_left(dio_left), dio_right(dio_right) {
 				notifier = new Notifier(&ScissorLift::run_loop, this);
+				talon_left->SetSelectedSensorPosition(0, 0, 10);
+				talon_right->SetSelectedSensorPosition(0, 0, 10);
 			};
 		void start_loop(float sync_p_gain, float max_peak_output);
 		void stop_loop();

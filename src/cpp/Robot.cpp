@@ -152,9 +152,10 @@ class Robot : public IterativeRobot {
 
 			JetsonCommand setup;
 			setup.setup_data.delta_time = 10;
-			setup.setup_data.max_velocity = 0.75;
+			setup.setup_data.max_velocity = 2.0;
 			setup.setup_data.min_velocity = 0.1;
 			setup.setup_data.wheel_width = 635.0;
+			//setup.setup_data.wheel_width = 1200.0;
 			setup.setup_data.layout_bits = (JetsonCommand::Setup::LayoutBits)(0);
 			setup.type = JetsonCommand::Type::Setup;
 			profile = new MotionProfile(
@@ -245,6 +246,8 @@ class Robot : public IterativeRobot {
 			tln_drbase_left_enc->SetSelectedSensorPosition(0, 0, 10);
 			tln_drbase_right_enc->SetSelectedSensorPosition(0, 0, 10);
 
+			scissor->start_loop(scissorlift_p_gain, scissorlift_max_speed);
+			scissor->set_position(-scissorlift_one_rotation_nu * 3.0 * 3);
 			profile->start((JetsonCommand::Setup::LayoutBits) 0 );
 		}
 
