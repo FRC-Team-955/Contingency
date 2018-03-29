@@ -8,6 +8,14 @@ struct TankDriveMotionUnit {
 	float velocity_right;
 };
 
+enum Action {
+	None = 0,
+	Scissor_Switch = 1,
+	Scissor_Scale = 2,
+	Cube_Expel = 4,
+	Cube_Intake = 8,
+};
+
 struct RioCommand {
 	enum Type {
 		RioNone,
@@ -16,37 +24,16 @@ struct RioCommand {
 		Request_Setup,
 	} type;
 	TankDriveMotionUnit motion;
-	enum Action {
-		None         = 0,
-		Scissor_Up   = 1,
-		Scissor_Down = 2,
-		Cube_Expel   = 4,
-		Cube_Intake  = 8,
-	} action;
+	Action action;
 };
-
 
 struct JetsonCommand {
 	enum Type {
 		JetsonNone,
-		Setup,
+		Reset,
 		Request_Motion,
 	} type;
-	struct Setup {
-		enum LayoutBits {
-			we_are_blue = 1,
-			we_are_left = 2,
-			switch_left = 4,
-			scale_left  = 8,
-		} layout_bits;
-		float max_velocity;
-		float min_velocity;
-		float delta_time;
-		float wheel_width;
-		//TODO: Make the rio cache the last position in the even of a Jetson reboot you can recover the path
-		//float estimated_position_x;
-		//float estimated_position_y;
-	} setup_data;
+	char config[3];
 };
 
 #endif

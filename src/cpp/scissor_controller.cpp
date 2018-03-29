@@ -9,10 +9,10 @@ void ScissorLiftController::update() {
 	int current = joy->GetPOV(0);
 	bool go_up = joy->GetRawAxis(3) > 0.2;
 	bool go_dn = joy->GetRawAxis(2) > 0.2;
-	if (go_up && reset_up) {
+	if (go_up/* && reset_up*/) {
 		reset_up = false;
 		scissor->set_position(scissor->get_target() - position_delta);
-	} else if (go_dn && reset_dn) {
+	} else if (go_dn/* && reset_dn*/) {
 		reset_dn = false;
 		scissor->set_position(scissor->get_target() + position_delta);
 	}

@@ -49,48 +49,6 @@ class Robot : public IterativeRobot {
 		ScissorLiftController* scissor_control;
 		MotionProfile* profile;
 
-		void FPID() {
-			//TODO: Hardcoded PIDF
-			tln_scissor_left_enc->Config_kF(talon_pid_loop_idx, 0, talon_timeout_ms);
-			tln_scissor_left_enc->Config_kP(talon_pid_loop_idx, 1, talon_timeout_ms);
-			tln_scissor_left_enc->Config_kI(talon_pid_loop_idx, 0, talon_timeout_ms);
-			tln_scissor_left_enc->Config_kD(talon_pid_loop_idx, 10, talon_timeout_ms);
-
-			tln_scissor_right_enc->Config_kF(talon_pid_loop_idx, 0, talon_timeout_ms);
-			tln_scissor_right_enc->Config_kP(talon_pid_loop_idx, 1, talon_timeout_ms);
-			tln_scissor_right_enc->Config_kI(talon_pid_loop_idx, 0, talon_timeout_ms);
-			tln_scissor_right_enc->Config_kD(talon_pid_loop_idx, 10, talon_timeout_ms);
-
-
-			tln_drbase_left_enc->Config_kP(talon_pid_loop_idx, 1.5, talon_timeout_ms);
-			tln_drbase_left_enc->Config_kI(talon_pid_loop_idx, 0, talon_timeout_ms);
-			tln_drbase_left_enc->Config_kD(talon_pid_loop_idx, 10, talon_timeout_ms);
-
-			tln_drbase_right_enc->Config_kP(talon_pid_loop_idx, 1.5, talon_timeout_ms);
-			tln_drbase_right_enc->Config_kI(talon_pid_loop_idx, 0, talon_timeout_ms);
-			tln_drbase_right_enc->Config_kD(talon_pid_loop_idx, 10, talon_timeout_ms);
-
-			tln_drbase_left_enc->Config_kF(talon_pid_loop_idx, drbase_f_gain_left, talon_timeout_ms);
-			//tln_drbase_left_enc->Config_kP(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 1", "0.0").c_str()), talon_timeout_ms);
-			//tln_drbase_left_enc->Config_kI(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 2", "0.0").c_str()), talon_timeout_ms);
-			//tln_drbase_left_enc->Config_kD(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 3", "0.0").c_str()), talon_timeout_ms);
-
-			tln_drbase_right_enc->Config_kF(talon_pid_loop_idx, drbase_f_gain_right, talon_timeout_ms);
-			//tln_drbase_right_enc->Config_kP(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 6", "0.0").c_str()), talon_timeout_ms);
-			//tln_drbase_right_enc->Config_kI(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 7", "0.0").c_str()), talon_timeout_ms);
-			//tln_drbase_right_enc->Config_kD(talon_pid_loop_idx, std::atof(SmartDashboard::GetString("DB/String 8", "0.0").c_str()), talon_timeout_ms);
-
-			/*
-			tln_drbase_left_enc->Config_kP(talon_pid_loop_idx, SmartDashboard::GetNumber("P_left", 0.0), talon_timeout_ms);
-			tln_drbase_left_enc->Config_kI(talon_pid_loop_idx, SmartDashboard::GetNumber("I_left", 0.0), talon_timeout_ms);
-			tln_drbase_left_enc->Config_kD(talon_pid_loop_idx, SmartDashboard::GetNumber("D_left", 0.0), talon_timeout_ms);
-
-			tln_drbase_right_enc->Config_kP(talon_pid_loop_idx, SmartDashboard::GetNumber("P_right", 0.0), talon_timeout_ms);
-			tln_drbase_right_enc->Config_kI(talon_pid_loop_idx, SmartDashboard::GetNumber("I_right", 0.0), talon_timeout_ms);
-			tln_drbase_right_enc->Config_kD(talon_pid_loop_idx, SmartDashboard::GetNumber("D_right", 0.0), talon_timeout_ms);
-			*/
-		}
-
 		void RobotInit() {
 			std::cout << "================= Initializing... =================" << std::endl;
 #define TALON(NAME, NUM) tln_##NAME = new TalonSRX(NUM); \
@@ -123,7 +81,11 @@ class Robot : public IterativeRobot {
 			joy = new Joystick(joy_idx);
 
 			scissor = new ScissorLift(tln_scissor_left_enc, tln_scissor_right_enc, dio_left, dio_right);
-			scissor_control = new ScissorLiftController(joy, scissor, scissorlift_one_rotation_nu * 3.0);
+			scissor_control = new ScissorLiftController(
+					joy,
+					scissor,
+					//scissorlift_one_rotation_nu * 3.0);
+					scissorlift_one_rotation_nu / 10);
 
 			drive_base_shifter_a = new Solenoid(solenoid_shifter_idx_a);
 			drive_base_shifter_b = new Solenoid(solenoid_shifter_idx_b);
@@ -138,11 +100,11 @@ class Robot : public IterativeRobot {
 					drive_y_axis_idx,
 					drive_x_axis_exponent,
 					drive_y_axis_exponent,
-					//-5000.0, 
-					-1.0,
+					-5000.0, 
+					//-1.0,
 					shift_counts_max,
-					//ControlMode::Velocity);
-					ControlMode::PercentOutput);
+					ControlMode::Velocity);
+					//ControlMode::PercentOutput);
 
 			//TODO: Non-blocking!
 			//      Change to static IPs!!
@@ -150,22 +112,14 @@ class Robot : public IterativeRobot {
 			jetson = new SocketClient (5801, (char*)"tegra-ubuntu.local");
 			std::cout << "Connected!" << std::endl;
 
-			JetsonCommand setup;
-			setup.setup_data.delta_time = 10;
-			setup.setup_data.max_velocity = 2.0;
-			setup.setup_data.min_velocity = 0.1;
-			setup.setup_data.wheel_width = 635.0;
-			//setup.setup_data.wheel_width = 1200.0;
-			setup.setup_data.layout_bits = (JetsonCommand::Setup::LayoutBits)(0);
-			setup.type = JetsonCommand::Type::Setup;
 			profile = new MotionProfile(
 					tln_drbase_left_enc,
 					tln_drbase_right_enc,
 					tln_intake_left,
 					tln_intake_right,
+					scissor,
 					jetson,
 					ControlMode::Velocity,
-					setup,
 					(4096.0 * 100.0) / (0.728 * 104.775 * M_PI));
 
 			SmartDashboard::PutNumber("P_right", 0.0);
@@ -188,9 +142,8 @@ class Robot : public IterativeRobot {
 		}
 
 		void TeleopInit() {
-			FPID();
-			tln_drbase_left_enc->ConfigClosedloopRamp(0.05, 10);
-			tln_drbase_right_enc->ConfigClosedloopRamp(0.05, 10);
+			//tln_drbase_left_enc->ConfigClosedloopRamp(0.05, 10);
+			//tln_drbase_right_enc->ConfigClosedloopRamp(0.05, 10);
 			drive_base_control->reset_shift_count();	
 			tln_drbase_left_enc->ConfigPeakOutputForward(1.0, talon_timeout_ms);
 			tln_drbase_left_enc->ConfigPeakOutputReverse(-1.0, talon_timeout_ms);
@@ -224,15 +177,15 @@ class Robot : public IterativeRobot {
 			}
 
 			if (joy->GetRawButton(6)) {
-				drive_base_control->max_velocity = -0.5;
+				//drive_base_control->max_velocity = -0.5;
 				tln_intake_left->Set(ControlMode::PercentOutput, intake_speed_in);	
 				tln_intake_right->Set(ControlMode::PercentOutput, intake_speed_in);	
 			} else if (joy->GetRawButton(5)) {
-				drive_base_control->max_velocity = -0.5;
+				//drive_base_control->max_velocity = -0.5;
 				tln_intake_left->Set(ControlMode::PercentOutput, intake_speed_out);	
 				tln_intake_right->Set(ControlMode::PercentOutput, intake_speed_out);	
 			} else {
-				drive_base_control->max_velocity = -1.0;
+				//drive_base_control->max_velocity = -1.0;
 				tln_intake_left->Set(ControlMode::PercentOutput, 0);	
 				tln_intake_right->Set(ControlMode::PercentOutput, 0);	
 			}
@@ -247,8 +200,8 @@ class Robot : public IterativeRobot {
 			tln_drbase_right_enc->SetSelectedSensorPosition(0, 0, 10);
 
 			scissor->start_loop(scissorlift_p_gain, scissorlift_max_speed);
-			scissor->set_position(-scissorlift_one_rotation_nu * 3.0 * 3);
-			profile->start((JetsonCommand::Setup::LayoutBits) 0 );
+			//scissor->set_position(-scissorlift_one_rotation_nu * 3.0 * 3);
+			profile->start((char*)"RRR");
 		}
 
 		void AutonomousPeriodic() {
@@ -257,6 +210,7 @@ class Robot : public IterativeRobot {
 
 		bool display_results_once = false;
 		void TestInit() {
+			std::cout << "TEST INIT" << std::endl;
 			/*
 				display_results_once = false;
 				diag->reset();

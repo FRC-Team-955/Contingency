@@ -68,6 +68,7 @@ DriveBase::DriveBase(Joystick *joy,
 		} else {
 			float velocity_left = left_tracks * max_velocity;
 			float velocity_right = right_tracks * max_velocity;
+			std::cout << max_velocity << std::endl;
 
 			//float fgain_left = (((fabs(velocity_left) * 0.000212572541) + 0.2377763902) * 1023.0) / fabs(velocity_left);
 			//float fgain_right = (((fabs(velocity_right) * 0.000212572541) + 0.2377763902) * 1023.0) / fabs(velocity_right);
