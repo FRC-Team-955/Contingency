@@ -1,5 +1,4 @@
-#ifndef SHARED_NETWORK_TYPES_H
-#define SHARED_NETWORK_TYPES_H
+#pragma once
 
 struct TankDriveMotionUnit {
 	float position_left;
@@ -35,5 +34,3 @@ struct JetsonCommand {
 	} type;
 	char config[3];
 };
-
-#endif

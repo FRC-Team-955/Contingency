@@ -19,6 +19,7 @@
 #include <socket.h>
 #include <shared_network_types.h>
 #include <motion_profile.h>
+#include <crapauto.h>
 
 //TODO: 
 //      FPID Tuning with the Smart Dashboard
@@ -49,6 +50,8 @@ class Robot : public IterativeRobot {
 		ScissorLiftController* scissor_control;
 		MotionProfile* profile;
 
+		CrapAuto* crap;
+
 		void RobotInit() {
 			std::cout << "================= Initializing... =================" << std::endl;
 #define TALON(NAME, NUM) tln_##NAME = new TalonSRX(NUM); \
@@ -72,6 +75,7 @@ class Robot : public IterativeRobot {
 			tln_drbase_right_enc->ConfigSelectedFeedbackSensor(FeedbackDevice::QuadEncoder, 0, 10);
 
 			tln_drbase_left_enc->SetSensorPhase(true);
+			tln_drbase_right_enc->SetSensorPhase(true);
 
 			dio_left = new DigitalInput(dio_idx_scissor_left);
 			dio_right = new DigitalInput(dio_idx_scissor_right);
@@ -100,50 +104,39 @@ class Robot : public IterativeRobot {
 					drive_y_axis_idx,
 					drive_x_axis_exponent,
 					drive_y_axis_exponent,
-					-5000.0, 
-					//-1.0,
+					//-5000.0, 
+					-1.0,
 					shift_counts_max,
-					ControlMode::Velocity);
-					//ControlMode::PercentOutput);
+					//ControlMode::Velocity);
+					ControlMode::PercentOutput);
+			
+			crap = new CrapAuto(
+					tln_drbase_left_enc,
+					tln_drbase_right_enc,
+					drive_base_shifter_a,
+					drive_base_shifter_b,
+					0.5,
+					1.6);
+
 
 			//TODO: Non-blocking!
 			//      Change to static IPs!!
-			std::cout << "Connecting to Jetson" << std::endl;
-			jetson = new SocketClient (5801, (char*)"tegra-ubuntu.local");
-			std::cout << "Connected!" << std::endl;
-
-			profile = new MotionProfile(
-					tln_drbase_left_enc,
-					tln_drbase_right_enc,
-					tln_intake_left,
-					tln_intake_right,
-					scissor,
-					jetson,
-					ControlMode::Velocity,
-					(4096.0 * 100.0) / (0.728 * 104.775 * M_PI));
-
-			SmartDashboard::PutNumber("P_right", 0.0);
-			SmartDashboard::PutNumber("I_right", 0.0);
-			SmartDashboard::PutNumber("D_right", 0.0);
-			SmartDashboard::PutNumber("P_left", 0.0);
-			SmartDashboard::PutNumber("I_left", 0.0);
-			SmartDashboard::PutNumber("D_left", 0.0);
-			//0.25);
-
-			//std::cout << "Finished." << std::endl;
 
 			std::cout << "============ Initialization complete. ============" << std::endl;
 		}
 
 		void DisabledInit() {
-			std::cout << 0.728 * 104.775 * M_PI * (tln_drbase_left_enc->GetSelectedSensorPosition(0) / 4096.0) << " : " << tln_drbase_right_enc->GetSelectedSensorPosition(0) << std::endl;
-			profile->stop();
+			std::cout << tln_drbase_left_enc->GetSelectedSensorPosition(0) / 1600.0 << " : " << tln_drbase_right_enc->GetSelectedSensorPosition(0) / 1600.0 << std::endl;
 			scissor_control->stop();
+			if (profile) {
+				profile->stop();
+			}
 		}
 
 		void TeleopInit() {
-			//tln_drbase_left_enc->ConfigClosedloopRamp(0.05, 10);
-			//tln_drbase_right_enc->ConfigClosedloopRamp(0.05, 10);
+			if (profile) {
+				profile->stop();
+			}
 			drive_base_control->reset_shift_count();	
 			tln_drbase_left_enc->ConfigPeakOutputForward(1.0, talon_timeout_ms);
 			tln_drbase_left_enc->ConfigPeakOutputReverse(-1.0, talon_timeout_ms);
@@ -152,10 +145,6 @@ class Robot : public IterativeRobot {
 
 			tln_drbase_left_enc->SetSelectedSensorPosition(0, 0, 10);
 			tln_drbase_right_enc->SetSelectedSensorPosition(0, 0, 10);
-			//scissor_control->start(
-			//		SmartDashboard::GetNumber("DB/Slider 0", 0.0) / scissorlift_one_rotation_nu,
-			//		SmartDashboard::GetNumber("DB/Slider 1", 0.0)
-			//		);
 
 			scissor_control->start(scissorlift_p_gain, scissorlift_max_speed);
 		}
@@ -165,8 +154,6 @@ class Robot : public IterativeRobot {
 			drive_base_control->update();
 			scissor_control->update();
 
-			//SmartDashboard::PutNumber("Error left" , tln_drbase_left_enc->GetClosedLoopError(0));
-			//SmartDashboard::PutNumber("Error right" , tln_drbase_right_enc->GetClosedLoopError(0));
 			std::cout << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
 			//std::cout << tln_drbase_left_enc->GetSelectedSensorVelocity(0) << " : " << tln_drbase_right_enc->GetSelectedSensorVelocity(0) << std::endl;
 
@@ -193,6 +180,22 @@ class Robot : public IterativeRobot {
 		}
 
 		void AutonomousInit() {
+
+			std::cout << "Connecting to Jetson" << std::endl;
+			jetson = new SocketClient (5801, (char*)"10.9.55.6");
+			std::cout << "Connected!" << std::endl;
+
+			profile = new MotionProfile(
+					tln_drbase_left_enc,
+					tln_drbase_right_enc,
+					tln_intake_left,
+					tln_intake_right,
+					scissor,
+					jetson,
+					ControlMode::Velocity,
+					//(4096.0 * 100.0) / (2.0 * 0.728 * 104.775 * M_PI));
+					  1600.0);
+
 			tln_drbase_left_enc->ConfigClosedloopRamp(0.0, 10);
 			tln_drbase_right_enc->ConfigClosedloopRamp(0.0, 10);
 
@@ -200,35 +203,28 @@ class Robot : public IterativeRobot {
 			tln_drbase_right_enc->SetSelectedSensorPosition(0, 0, 10);
 
 			scissor->start_loop(scissorlift_p_gain, scissorlift_max_speed);
-			//scissor->set_position(-scissorlift_one_rotation_nu * 3.0 * 3);
-			profile->start((char*)"RRR");
+			std::string game_data;
+			int loc = DriverStation::GetInstance().GetLocation();
+			for (int i = 0; i < 100; i++) {
+				loc = DriverStation::GetInstance().GetLocation();
+				game_data = DriverStation::GetInstance().GetGameSpecificMessage();
+			}
+			game_data.erase(game_data.end() - 1); //Screw the last char, we don't need to know
+			game_data.append(std::to_string(loc)); //Add the positon as the last
+			std::cout << "GAME DATA: " << game_data << std::endl;
+
+			profile->start((char*)game_data.c_str());
+			//crap->start();
 		}
 
 		void AutonomousPeriodic() {
 			std::cout << tln_drbase_left_enc->GetClosedLoopError(0) << " : " << tln_drbase_right_enc->GetClosedLoopError(0) << std::endl;
+			//crap->update();
 		}
 
 		bool display_results_once = false;
 		void TestInit() {
 			std::cout << "TEST INIT" << std::endl;
-			/*
-				display_results_once = false;
-				diag->reset();
-				diag->push_diagnostic(new SRXTest(tln_intake_left, 1.0, intake_speed_in));
-				diag->push_diagnostic(new SRXTest(tln_intake_right, 1.0, intake_speed_in));
-
-				diag->push_diagnostic(new EncodedSRXTest(tln_drbase_left_enc, 2.0, 0.25));
-				diag->push_diagnostic(new EncodedSRXTest(tln_drbase_right_enc, 2.0, 0.25));
-
-				auto lm_test_left = new LimitSwitchTest(dio_left);
-				auto lm_test_right = new LimitSwitchTest(dio_right);
-				lm_test_left->subtests.push_back(lm_test_right);
-				auto scissor_home = new ScissorHomeTest(scissor, 0.25);
-				lm_test_right->subtests.push_back(scissor_home);
-
-				diag->push_diagnostic(lm_test_left);
-				diag->start();
-				*/
 			tln_scissor_left_enc->ConfigPeakOutputForward(1.0, 10);
 			tln_scissor_left_enc->ConfigPeakOutputReverse(-1.0, 10);
 			tln_scissor_right_enc->ConfigPeakOutputForward(1.0, 10);
@@ -236,13 +232,6 @@ class Robot : public IterativeRobot {
 		}
 
 		void TestPeriodic() {
-			/*
-				if (!display_results_once && !diag->control()) {
-				diag->results();
-				diag->reset();
-				display_results_once = true;
-				}
-				*/
 			tln_scissor_left_enc->Set(ControlMode::PercentOutput, joy->GetRawAxis(1));
 			tln_scissor_right_enc->Set(ControlMode::PercentOutput, joy->GetRawAxis(5));
 			std::cout << tln_scissor_left_enc->GetSelectedSensorPosition(0) << " : " <<
